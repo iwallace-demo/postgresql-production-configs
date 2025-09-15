@@ -1,0 +1,50 @@
+ yaml
+*PostgreSQL Production Stack*
+*Database Team - Sept 2025*
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres-primary
+    environment:
+      POSTGRES_DB: app_production
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./config/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./config/pg_hba.conf:/etc/postgresql/pg_hba.conf
+    ports:
+      - "5432:5432"
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    networks:
+      - db-network
+    restart: unless-stopped
+
+  pgbouncer:
+    image: pgbouncer/pgbouncer:latest
+    container_name: pgbouncer
+    environment:
+      DATABASES_HOST: postgres
+      DATABASES_PORT: 5432
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 25
+    volumes:
+      - ./config/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini
+    ports:
+      - "6432:6432"
+    depends_on:
+      - postgres
+    networks:
+      - db-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  db-network:
+    driver: bridge
